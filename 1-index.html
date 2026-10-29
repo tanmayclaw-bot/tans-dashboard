@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tan's Command Center</title>
+<meta name="description" content="One private home for projects, study resources and websites.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128203;</text></svg>">
+</head>
+<body>
+<main id="app">
+  <section id="login-view" class="center-card hidden">
+    <h1>Command Center</h1>
+    <p class="muted">Private. Sign in to see and manage everything.</p>
+    <form id="login-form">
+      <label>Email<input type="email" id="login-email" autocomplete="username" required></label>
+      <label>Password<input type="password" id="login-password" autocomplete="current-password" required></label>
+      <button type="submit" class="primary">Sign in</button>
+      <p id="login-error" class="error"></p>
+    </form>
+  </section>
+
+  <section id="reset-view" class="center-card hidden">
+    <h1>Set your password</h1>
+    <p class="muted">You came through a secure email link. Choose the password for managing this dashboard.</p>
+    <form id="reset-form">
+      <label>New password<input type="password" id="reset-password" autocomplete="new-password" minlength="8" required></label>
+      <button type="submit" class="primary">Save password</button>
+      <p id="reset-error" class="error"></p>
+    </form>
+  </section>
+
+  <section id="dash-view" class="hidden">
+    <header class="topbar">
+      <div>
+        <h1>Command Center</h1>
+        <p class="muted" id="today-line"></p>
+      </div>
+      <div class="topbar-actions">
+        <input type="search" id="search" placeholder="Search resources..." aria-label="Search resources">
+        <button id="add-btn" class="primary">+ Add</button>
+        <button id="logout-btn" class="ghost">Sign out</button>
+      </div>
+    </header>
+    <div id="sections"></div>
+    <p id="empty-state" class="muted hidden">Nothing matches. Clear the search or add it.</p>
+    <footer class="muted small">Links and notes live in your own Supabase backend. Editing is only possible after sign-in.</footer>
+  </section>
+</main>
+
+<dialog id="edit-dialog">
+  <form id="edit-form" method="dialog">
+    <h2 id="edit-title">Add resource</h2>
+    <input type="hidden" id="f-id">
+    <label>Section
+      <input type="text" id="f-section" list="sections-list" required placeholder="e.g. College - Sem 2">
+      <datalist id="sections-list"></datalist>
+    </label>
+    <label>Title<input type="text" id="f-title" required></label>
+    <label>Link<input type="url" id="f-url" required placeholder="https://..."></label>
+    <label>Note<input type="text" id="f-note" placeholder="What it is, one line"></label>
+    <label>Badge<input type="text" id="f-badge" placeholder="e.g. due 31 Oct (optional)"></label>
+    <div class="dialog-actions">
+      <button type="button" id="delete-btn" class="danger hidden">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="cancel-btn" class="ghost">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
