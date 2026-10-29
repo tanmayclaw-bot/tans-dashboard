@@ -8,6 +8,24 @@ const toMin = (t) => { const [h, m] = String(t).split(":").map(Number); return h
 const fmt12 = (t) => { const [h, m] = String(t).split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; const hh = h % 12 || 12; return m ? `${hh}:${String(m).padStart(2,"0")} ${ap}` : `${hh} ${ap}`; };
 const leftStr = (mins) => mins >= 60 ? `${Math.floor(mins/60)}h${mins%60 ? " " + (mins%60) + "m" : ""} left` : `${mins}m left`;
 
+// Store optional emoji as a readable title prefix so all existing views and backups keep it.
+function splitEmojiTitle(title = "") {
+  const parts = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(title)];
+  const first = parts[0]?.segment || "";
+  const isEmoji = /[\p{Extended_Pictographic}\p{Regional_Indicator}\u20e3]/u.test(first);
+  return isEmoji && title.slice(first.length).startsWith(" ")
+    ? { emoji: first, title: title.slice(first.length + 1) } : { emoji: "", title };
+}
+function titleWithEmoji(emojiId, titleId) {
+  const emoji = $(emojiId).value.trim();
+  return (emoji ? emoji + " " : "") + $(titleId).value.trim();
+}
+["f-emoji", "t-emoji"].forEach((id) => $(id).addEventListener("input", () => {
+  const input = $(id), value = input.value.trim();
+  const parts = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(value)];
+  input.setCustomValidity(!value || (parts.length === 1 && /[\p{Extended_Pictographic}\p{Regional_Indicator}\u20e3]/u.test(value)) ? "" : "Choose one emoji, or leave this blank.");
+}));
+
 let items = [], tasks = [], events = [], habits = [], habitDays = [], focusLog = [], settings = {}, notesBody = "";
 let mode = localStorage.getItem("cc.mode") || "board";
 let chip = localStorage.getItem("cc.chip") || "today";
@@ -151,7 +169,10 @@ function openEdit(it, secs) {
   $("edit-title").textContent = it ? "Edit resource" : "Add resource";
   $("f-id").value = it ? it.id : "";
   $("f-section").value = it ? it.section : "";
-  $("f-title").value = it ? it.title : "";
+  const resourceTitle = splitEmojiTitle(it?.title);
+  $("f-title").value = resourceTitle.title;
+  $("f-emoji").value = resourceTitle.emoji;
+  $("f-emoji").setCustomValidity("");
   $("f-url").value = it ? it.url : "";
   $("f-note").value = it ? it.note || "" : "";
   $("f-badge").value = it ? it.badge || "" : "";
@@ -163,7 +184,7 @@ $("cancel-btn").addEventListener("click", () => $("edit-dialog").close());
 $("edit-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = $("f-id").value;
-  const row = { section: $("f-section").value.trim(), title: $("f-title").value.trim(), url: $("f-url").value.trim(), note: $("f-note").value.trim(), badge: $("f-badge").value.trim(), updated_at: new Date().toISOString() };
+  const row = { section: $("f-section").value.trim(), title: titleWithEmoji("f-emoji", "f-title"), url: $("f-url").value.trim(), note: $("f-note").value.trim(), badge: $("f-badge").value.trim(), updated_at: new Date().toISOString() };
   if (id) await sb.from("dashboard_items").update(row).eq("id", id);
   else { row.sort = (Math.max(0, ...items.filter((x) => x.section === row.section).map((x) => x.sort || 0)) || 0) + 10; await sb.from("dashboard_items").insert(row); }
   $("edit-dialog").close(); loadAll();
@@ -277,7 +298,10 @@ async function toggleTask(id) {
 function openTask(t) {
   $("task-title").textContent = t ? "Edit task" : "Add task";
   $("t-id").value = t ? t.id : "";
-  $("t-title").value = t ? t.title : "";
+  const taskTitle = splitEmojiTitle(t?.title);
+  $("t-title").value = taskTitle.title;
+  $("t-emoji").value = taskTitle.emoji;
+  $("t-emoji").setCustomValidity("");
   $("t-priority").value = t ? t.priority : "med";
   $("t-due").value = t && t.due ? t.due : "";
   $("t-project").value = t ? t.project || "" : "";
@@ -289,7 +313,7 @@ $("t-cancel").addEventListener("click", () => $("task-dialog").close());
 $("task-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = $("t-id").value;
-  const row = { title: $("t-title").value.trim(), priority: $("t-priority").value, due: $("t-due").value || null, project: $("t-project").value.trim(), link: $("t-link").value.trim(), updated_at: new Date().toISOString() };
+  const row = { title: titleWithEmoji("t-emoji", "t-title"), priority: $("t-priority").value, due: $("t-due").value || null, project: $("t-project").value.trim(), link: $("t-link").value.trim(), updated_at: new Date().toISOString() };
   if (id) await sb.from("planner_tasks").update(row).eq("id", id);
   else { row.sort = (Math.max(0, ...tasks.map((x) => x.sort || 0)) || 0) + 10; await sb.from("planner_tasks").insert(row); }
   $("task-dialog").close(); loadAll();
