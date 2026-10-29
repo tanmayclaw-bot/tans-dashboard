@@ -12,6 +12,22 @@ let items = [], tasks = [], events = [], habits = [], habitDays = [], focusLog =
 let mode = localStorage.getItem("cc.mode") || "board";
 let chip = localStorage.getItem("cc.chip") || "today";
 let taskFilter = "open";
+let countdownMode = localStorage.getItem("cc.countdownMode") === "live" ? "live" : "days";
+// Tan's chosen preparation cutoff, not the unconfirmed exam start time.
+const PREP_CUTOFF = Date.parse("2026-11-28T22:00:00+05:30");
+function countdownParts(now = Date.now()) {
+  const total = Math.max(0, Math.ceil((PREP_CUTOFF - now) / 1000));
+  return [Math.floor(total / 86400), Math.floor(total / 3600) % 24, Math.floor(total / 60) % 60, total % 60];
+}
+function updateLiveCountdown() {
+  const timer = $("live-countdown");
+  if (!timer) return;
+  const parts = countdownParts();
+  timer.querySelectorAll("[data-unit]").forEach((el, i) => el.textContent = String(parts[i]).padStart(2, "0"));
+  $("cutoff-status").textContent = Date.now() >= PREP_CUTOFF ? "Prep cutoff reached" : "until your prep cutoff";
+}
+setInterval(updateLiveCountdown, 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) updateLiveCountdown(); });
 
 /* ---------- auth ---------- */
 async function boot() {
@@ -172,8 +188,18 @@ function renderToday() {
   const cd = settings.countdown;
   if (cd && cd.date) {
     const days = Math.ceil((new Date(cd.date + "T00:00:00") - new Date(iso + "T00:00:00")) / 86400000);
-    html += `<div class="card countdown"><div><div class="days">${days}</div><div class="label">${esc(cd.label || "Countdown")}</div>
-      <div class="sub">${niceDate(cd.date)} · ${days >= 0 ? (days === 0 ? "today" : "days to go") : "days ago"} · start time not confirmed yet</div></div></div>`;
+    html += `<div class="card countdown">
+      <div class="countdown-switch" role="group" aria-label="Countdown view">
+        <button type="button" data-countdown="days" aria-pressed="${countdownMode === "days"}">Days</button>
+        <button type="button" data-countdown="live" aria-pressed="${countdownMode === "live"}">Live</button>
+      </div>
+      <div class="label">${esc(cd.label || "Countdown")}</div>
+      ${countdownMode === "live" ? `<div id="live-countdown" class="live-countdown" role="timer" aria-label="Time until preparation cutoff">${["days", "hours", "minutes", "seconds"].map(unit => `<div><span data-unit="${unit}">00</span><small>${unit}</small></div>`).join("")}</div>
+        <div class="sub" id="cutoff-status">until your prep cutoff</div>
+        <div class="sub">Sat 28 Nov 2026 · 10:00 PM IST</div>
+        <div class="sub">Your prep cutoff, not the exam start</div>` : `<div class="days">${Math.abs(days)}</div>
+        <div class="sub">${niceDate(cd.date)} · ${days >= 0 ? (days === 0 ? "today" : "days to go") : "days ago"} · start time not confirmed yet</div>`}
+      </div>`;
   }
   const todaysEvents = eventsFor(iso).slice().sort((a, b) => toMin(a.start_time) - toMin(b.start_time));
   const dueToday = tasks.filter((t) => !t.done && t.due === iso);
@@ -204,6 +230,12 @@ function renderToday() {
   dueToday.forEach((t) => { html += `<div class="line-item"><button class="check" data-done="${t.id}" aria-label="Mark done"></button><span class="what">${esc(t.title)} ${t.project ? `<span class="pill">${esc(t.project)}</span>` : ""}</span></div>`; });
   html += `</div>`;
   el.innerHTML = html;
+  updateLiveCountdown();
+  el.querySelectorAll("[data-countdown]").forEach((b) => b.addEventListener("click", () => {
+    countdownMode = b.dataset.countdown;
+    localStorage.setItem("cc.countdownMode", countdownMode);
+    renderToday();
+  }));
   el.querySelectorAll("[data-done]").forEach((b) => b.addEventListener("click", () => toggleTask(b.dataset.done)));
 }
 function linkOrText(e) {
