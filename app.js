@@ -4,6 +4,9 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const niceDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const toMin = (t) => { const [h, m] = String(t).split(":").map(Number); return h * 60 + m; };
+const fmt12 = (t) => { const [h, m] = String(t).split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; const hh = h % 12 || 12; return m ? `${hh}:${String(m).padStart(2,"0")} ${ap}` : `${hh} ${ap}`; };
+const leftStr = (mins) => mins >= 60 ? `${Math.floor(mins/60)}h${mins%60 ? " " + (mins%60) + "m" : ""} left` : `${mins}m left`;
 
 let items = [], tasks = [], events = [], habits = [], habitDays = [], focusLog = [], settings = {}, notesBody = "";
 let mode = localStorage.getItem("cc.mode") || "board";
@@ -172,11 +175,32 @@ function renderToday() {
     html += `<div class="card countdown"><div><div class="days">${days}</div><div class="label">${esc(cd.label || "Countdown")}</div>
       <div class="sub">${niceDate(cd.date)} · ${days >= 0 ? (days === 0 ? "today" : "days to go") : "days ago"} · start time not confirmed yet</div></div></div>`;
   }
-  const todaysEvents = eventsFor(iso);
+  const todaysEvents = eventsFor(iso).slice().sort((a, b) => toMin(a.start_time) - toMin(b.start_time));
   const dueToday = tasks.filter((t) => !t.done && t.due === iso);
+  const nowD = new Date();
+  const nowM = nowD.getHours() * 60 + nowD.getMinutes();
+  const cur = todaysEvents.find((e) => toMin(e.start_time) <= nowM && nowM < toMin(e.end_time));
+  const nxt = todaysEvents.find((e) => toMin(e.start_time) > nowM);
+  if (cur) {
+    const span = toMin(cur.end_time) - toMin(cur.start_time);
+    const pct = Math.min(100, Math.round(((nowM - toMin(cur.start_time)) / span) * 100));
+    html += `<div class="card now-card"><div class="body">
+      <div class="now-tag">NOW</div>
+      <div class="title-plain">${esc(cur.title)}</div>
+      <div class="note">${fmt12(cur.start_time)} \u2013 ${fmt12(cur.end_time)} \u00b7 ${leftStr(toMin(cur.end_time) - nowM)}</div>
+      <div class="progress"><div class="bar" style="width:${pct}%"></div></div>
+      ${nxt ? `<div class="note then">Then ${fmt12(nxt.start_time)} \u00b7 ${esc(nxt.title)}</div>` : ""}
+    </div></div>`;
+  } else if (nxt) {
+    html += `<div class="card now-card"><div class="body">
+      <div class="now-tag">NEXT</div>
+      <div class="title-plain">${esc(nxt.title)}</div>
+      <div class="note">${fmt12(nxt.start_time)} \u2013 ${fmt12(nxt.end_time)} \u00b7 starts in ${leftStr(toMin(nxt.start_time) - nowM).replace(" left", "")}</div>
+    </div></div>`;
+  }
   html += `<div class="day-block"><h3>Today</h3>`;
   if (!todaysEvents.length && !dueToday.length) html += `<p class="muted small">Nothing scheduled. Add events from the Week tab or tasks from Tasks.</p>`;
-  todaysEvents.forEach((e) => { html += `<div class="line-item"><span class="time">${esc(e.start_time)}–${esc(e.end_time)}</span><span class="what">${linkOrText(e)}</span></div>`; });
+  todaysEvents.forEach((e) => { html += `<div class="line-item"><span class="time">${fmt12(e.start_time)}–${fmt12(e.end_time)}</span><span class="what">${linkOrText(e)}</span></div>`; });
   dueToday.forEach((t) => { html += `<div class="line-item"><button class="check" data-done="${t.id}" aria-label="Mark done"></button><span class="what">${esc(t.title)} ${t.project ? `<span class="pill">${esc(t.project)}</span>` : ""}</span></div>`; });
   html += `</div>`;
   el.innerHTML = html;
@@ -255,7 +279,7 @@ function renderWeek() {
     const due = tasks.filter((t) => !t.done && t.due === diso);
     html += `<div class="day-block"><h3>${i === 0 ? "Today · " : ""}${niceDate(diso)}</h3>`;
     if (!evs.length && !due.length) html += `<p class="muted small">Free.</p>`;
-    evs.forEach((e) => { html += `<div class="line-item"><span class="time">${esc(e.start_time)}–${esc(e.end_time)}</span><span class="what">${linkOrText(e)}</span><button class="ghost" data-edit-event="${e.id}" style="padding:4px 9px;margin:0;width:auto;font-size:13px">Edit</button></div>`; });
+    evs.forEach((e) => { html += `<div class="line-item"><span class="time">${fmt12(e.start_time)}–${fmt12(e.end_time)}</span><span class="what">${linkOrText(e)}</span><button class="ghost" data-edit-event="${e.id}" style="padding:4px 9px;margin:0;width:auto;font-size:13px">Edit</button></div>`; });
     due.forEach((t) => { html += `<div class="line-item"><span class="time">due</span><span class="what">${esc(t.title)}</span></div>`; });
     html += `</div>`;
   }
@@ -380,6 +404,7 @@ $("focuslog-btn").addEventListener("click", () => {
   $("resources-main").classList.add("hidden");
   $("search").classList.add("hidden");
   $("focuslog-view").classList.remove("hidden");
+  $("fl-id").value = "";
   $("fl-date").value = todayISO();
   renderFocusLog();
 });
@@ -390,11 +415,14 @@ $("focuslog-back").addEventListener("click", () => {
 });
 $("focuslog-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  await sb.from("planner_focus_log").insert({
+  const row = {
     day: $("fl-date").value, hours: $("fl-hours").value ? Number($("fl-hours").value) : null,
     work: $("fl-work").value.trim(), one_thing: $("fl-one").value.trim(),
-  });
-  $("fl-work").value = ""; $("fl-one").value = ""; $("fl-hours").value = "";
+  };
+  const id = $("fl-id").value;
+  if (id) await sb.from("planner_focus_log").update(row).eq("id", id);
+  else await sb.from("planner_focus_log").insert(row);
+  $("fl-id").value = ""; $("fl-work").value = ""; $("fl-one").value = ""; $("fl-hours").value = "";
   const { data } = await sb.from("planner_focus_log").select("*").order("day", { ascending: false }).limit(20);
   focusLog = data || []; renderFocusLog();
 });
@@ -402,10 +430,25 @@ function renderFocusLog() {
   const el = $("focuslog-list");
   if (!focusLog.length) { el.innerHTML = `<p class="muted small">No entries yet.</p>`; return; }
   el.innerHTML = focusLog.map((f) => `<div class="fl-entry">
-    <div class="meta">${niceDate(f.day)}${f.hours ? " · " + f.hours + "h" : ""}</div>
+    <div class="meta">${niceDate(f.day)}${f.hours ? " · " + f.hours + "h" : ""}
+      <button class="ghost fl-edit" data-fl-edit="${f.id}" style="padding:3px 9px;margin:0 0 0 8px;width:auto;font-size:12px">Edit</button>
+      <button class="ghost fl-del" data-fl-del="${f.id}" style="padding:3px 9px;margin:0 0 0 4px;width:auto;font-size:12px">Delete</button>
+    </div>
     <div>${esc(f.work)}</div>
     <div class="one">ONE: ${esc(f.one_thing)}</div>
   </div>`).join("");
+  el.querySelectorAll("[data-fl-edit]").forEach((b) => b.addEventListener("click", () => {
+    const f = focusLog.find((x) => x.id === b.dataset.flEdit); if (!f) return;
+    $("fl-id").value = f.id; $("fl-date").value = f.day;
+    $("fl-hours").value = f.hours ?? ""; $("fl-work").value = f.work; $("fl-one").value = f.one_thing;
+    $("focuslog-form").scrollIntoView({ behavior: "smooth" });
+  }));
+  el.querySelectorAll("[data-fl-del]").forEach((b) => b.addEventListener("click", async () => {
+    if (!confirm("Delete this focus log entry?")) return;
+    await sb.from("planner_focus_log").delete().eq("id", b.dataset.flDel);
+    focusLog = focusLog.filter((x) => x.id !== b.dataset.flDel);
+    renderFocusLog();
+  }));
 }
 
 boot();

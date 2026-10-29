@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128203;</text></svg>">
 </head>
 <body>
@@ -86,6 +86,7 @@
           <h2 style="margin:0">Focus log</h2>
         </div>
         <form id="focuslog-form" class="card form-card">
+          <input type="hidden" id="fl-id">
           <label>Date<input type="date" id="fl-date" required></label>
           <label>Hours<input type="number" id="fl-hours" step="0.25" min="0" max="16" placeholder="e.g. 2.5"></label>
           <label>Work performed *<textarea id="fl-work" rows="3" required placeholder="What you actually did"></textarea></label>
@@ -187,6 +188,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

@@ -117,3 +117,9 @@ footer { margin-top: 34px; text-align: center; }
   .topbar-actions button { flex: 1 1 auto; align-self: center; height: auto; }
   .card .tools { flex-direction: row; }
 }
+
+.now-card { border-left: 3px solid var(--accent); background: linear-gradient(160deg, #17202f, #101623); }
+.now-card .now-tag { color: var(--accent); font-size: 12px; letter-spacing: .1em; margin-bottom: 4px; }
+.now-card .progress { background: var(--panel-2); border-radius: 999px; height: 6px; margin: 10px 0 0; overflow: hidden; }
+.now-card .progress .bar { background: var(--accent); height: 100%; border-radius: 999px; }
+.now-card .then { margin-top: 8px; }
