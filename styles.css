@@ -76,5 +76,8 @@ dialog::backdrop { background: rgba(0,0,0,.55); }
 .dialog-actions button { margin-top: 0; width: auto; }
 @media (max-width: 560px) {
   .topbar { align-items: stretch; flex-direction: column; }
+  .topbar-actions { flex: none; flex-wrap: wrap; align-items: center; align-content: flex-start; }
+  .topbar-actions input[type="search"] { flex: 1 1 100%; }
+  .topbar-actions button { flex: 1 1 auto; align-self: center; height: auto; }
   .card .tools { flex-direction: row; }
 }
