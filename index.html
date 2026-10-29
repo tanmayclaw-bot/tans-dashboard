@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128203;</text></svg>">
 </head>
 <body>
@@ -36,9 +36,13 @@
 
   <section id="dash-view" class="hidden">
     <header class="topbar">
-      <div>
+      <div class="topbar-title">
         <h1>Command Center</h1>
         <p class="muted" id="today-line"></p>
+      </div>
+      <div class="mode-switch" role="tablist" aria-label="Mode">
+        <button id="mode-board" role="tab">Board</button>
+        <button id="mode-resources" role="tab">Resources</button>
       </div>
       <div class="topbar-actions">
         <input type="search" id="search" placeholder="Search resources..." aria-label="Search resources">
@@ -46,9 +50,53 @@
         <button id="logout-btn" class="ghost">Sign out</button>
       </div>
     </header>
-    <div id="sections"></div>
-    <p id="empty-state" class="muted hidden">Nothing matches. Clear the search or add it.</p>
-    <footer class="muted small">Links and notes live in your own Supabase backend. Editing is only possible after sign-in.</footer>
+
+    <nav id="board-chips" class="chips hidden" aria-label="Board sections">
+      <button data-chip="today" role="tab">Today</button>
+      <button data-chip="tasks" role="tab">Tasks</button>
+      <button data-chip="week" role="tab">Week</button>
+      <button data-chip="habit" role="tab">Habit</button>
+      <button data-chip="projects" role="tab">Projects</button>
+      <button data-chip="notes" role="tab">Notes</button>
+    </nav>
+
+    <div id="board-view" class="hidden">
+      <div id="chip-today" class="chip-page hidden"></div>
+      <div id="chip-tasks" class="chip-page hidden"></div>
+      <div id="chip-week" class="chip-page hidden"></div>
+      <div id="chip-habit" class="chip-page hidden"></div>
+      <div id="chip-projects" class="chip-page hidden"></div>
+      <div id="chip-notes" class="chip-page hidden">
+        <textarea id="notes-area" rows="12" placeholder="Private notes. Saved automatically."></textarea>
+        <p class="muted small" id="notes-status"></p>
+      </div>
+    </div>
+
+    <div id="resources-view" class="hidden">
+      <div id="resources-main">
+        <div id="sections"></div>
+        <p id="empty-state" class="muted hidden">Nothing matches. Clear the search or add it.</p>
+        <div class="focuslog-entry">
+          <button id="focuslog-btn" class="ghost">Focus log</button>
+        </div>
+      </div>
+      <div id="focuslog-view" class="hidden">
+        <div class="day-block" style="display:flex;align-items:center;gap:12px;margin-top:0">
+          <button id="focuslog-back" class="ghost" style="width:auto;margin:0;padding:8px 14px">&larr; Back</button>
+          <h2 style="margin:0">Focus log</h2>
+        </div>
+        <form id="focuslog-form" class="card form-card">
+          <label>Date<input type="date" id="fl-date" required></label>
+          <label>Hours<input type="number" id="fl-hours" step="0.25" min="0" max="16" placeholder="e.g. 2.5"></label>
+          <label>Work performed *<textarea id="fl-work" rows="3" required placeholder="What you actually did"></textarea></label>
+          <label>What's the ONE thing? *<input type="text" id="fl-one" required placeholder="The single most important thing"></label>
+          <button type="submit" class="primary">Save entry</button>
+        </form>
+        <div id="focuslog-list"></div>
+      </div>
+    </div>
+
+    <footer class="muted small">Private. Data lives in your own Supabase backend; editing needs sign-in.</footer>
   </section>
 </main>
 
@@ -73,8 +121,72 @@
   </form>
 </dialog>
 
+<dialog id="task-dialog">
+  <form id="task-form" method="dialog">
+    <h2 id="task-title">Add task</h2>
+    <input type="hidden" id="t-id">
+    <label>Task<input type="text" id="t-title" required></label>
+    <label>Priority
+      <select id="t-priority"><option value="high">High</option><option value="med" selected>Med</option><option value="low">Low</option></select>
+    </label>
+    <label>Due date<input type="date" id="t-due"></label>
+    <label>Project tag<input type="text" id="t-project" placeholder="e.g. NEAT (optional)"></label>
+    <label>Link<input type="url" id="t-link" placeholder="https://... (optional)"></label>
+    <div class="dialog-actions">
+      <button type="button" id="t-delete" class="danger hidden">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="t-cancel" class="ghost">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="event-dialog">
+  <form id="event-form" method="dialog">
+    <h2 id="event-title">Add event</h2>
+    <input type="hidden" id="e-id">
+    <label>Title<input type="text" id="e-title" required></label>
+    <div class="row2">
+      <label>Start<input type="time" id="e-start" required></label>
+      <label>End<input type="time" id="e-end" required></label>
+    </div>
+    <label>One-off date (leave empty if recurring)<input type="date" id="e-date"></label>
+    <fieldset id="e-days"><legend>Repeats on</legend>
+      <label><input type="checkbox" value="1"> Mon</label>
+      <label><input type="checkbox" value="2"> Tue</label>
+      <label><input type="checkbox" value="3"> Wed</label>
+      <label><input type="checkbox" value="4"> Thu</label>
+      <label><input type="checkbox" value="5"> Fri</label>
+      <label><input type="checkbox" value="6"> Sat</label>
+      <label><input type="checkbox" value="0"> Sun</label>
+    </fieldset>
+    <div class="dialog-actions">
+      <button type="button" id="e-delete" class="danger hidden">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="e-cancel" class="ghost">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="habit-dialog">
+  <form id="habit-form" method="dialog">
+    <h2 id="habit-title">Add habit</h2>
+    <input type="hidden" id="h-id">
+    <label>Habit<input type="text" id="h-title" required placeholder="e.g. 10-min Business terms revision"></label>
+    <label>Minutes<input type="number" id="h-minutes" min="1" max="180" placeholder="10"></label>
+    <label>Link<input type="url" id="h-link" placeholder="https://... (optional)"></label>
+    <div class="dialog-actions">
+      <button type="button" id="h-delete" class="danger hidden">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="h-cancel" class="ghost">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
