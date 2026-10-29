@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128203;</text></svg>">
 </head>
 <body>
@@ -109,6 +109,8 @@
       <input type="text" id="f-section" list="sections-list" required placeholder="e.g. College - Sem 2">
       <datalist id="sections-list"></datalist>
     </label>
+    <label>Emoji (optional)<input type="text" id="f-emoji" placeholder="e.g. 📚" aria-describedby="f-emoji-help"></label>
+    <p id="f-emoji-help" class="muted small">Choose one emoji from your keyboard. Leave blank for no emoji.</p>
     <label>Title<input type="text" id="f-title" required></label>
     <label>Link<input type="url" id="f-url" required placeholder="https://..."></label>
     <label>Note<input type="text" id="f-note" placeholder="What it is, one line"></label>
@@ -126,6 +128,8 @@
   <form id="task-form" method="dialog">
     <h2 id="task-title">Add task</h2>
     <input type="hidden" id="t-id">
+    <label>Emoji (optional)<input type="text" id="t-emoji" placeholder="e.g. 🎯" aria-describedby="t-emoji-help"></label>
+    <p id="t-emoji-help" class="muted small">Choose one emoji from your keyboard. Leave blank for no emoji.</p>
     <label>Task<input type="text" id="t-title" required></label>
     <label>Priority
       <select id="t-priority"><option value="high">High</option><option value="med" selected>Med</option><option value="low">Low</option></select>
@@ -188,6 +192,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
